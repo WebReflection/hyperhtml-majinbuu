@@ -1,5 +1,11 @@
 # hyperhtml-majinbuu
 
+[![donate](https://img.shields.io/badge/$-donate-ff69b4.svg?maxAge=2592000&style=flat)](https://github.com/WebReflection/donate)
+[![Coverage Status](https://coveralls.io/repos/github/WebReflection/hyperhtml-majinbuu/badge.svg?branch=master)](https://coveralls.io/github/WebReflection/hyperhtml-majinbuu?branch=master)
+[![Build Status](https://travis-ci.org/WebReflection/hyperhtml-majinbuu.svg?branch=master)](https://travis-ci.org/WebReflection/hyperhtml-majinbuu)
+[![License: ISC](https://img.shields.io/badge/License-ISC-yellow.svg)](https://opensource.org/licenses/ISC)
+[![Greenkeeper badge](https://badges.greenkeeper.io/WebReflection/hyperhtml-majinbuu.svg)](https://greenkeeper.io/)
+
 The [majinbuu](https://github.com/WebReflection/majinbuu) based DOM engine
 
 ```js
