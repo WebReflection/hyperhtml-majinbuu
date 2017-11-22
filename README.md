@@ -10,8 +10,8 @@ The [majinbuu](https://github.com/WebReflection/majinbuu) based DOM engine
 
 ```js
 // ESM example, import hyperHTML and this project
-import hyper from 'https://unpkg.com/hyperhtml@latest/esm/main.js';
-import hyperbuu from 'https://unpkg.com/hyperhtml-majinbuu@latest/esm/main.js';
+import hyper from 'https://unpkg.com/hyperhtml@latest/esm/index.js';
+import hyperbuu from 'https://unpkg.com/hyperhtml-majinbuu@latest/esm/index.js';
 
 // set this project as hyperHTML engine
 hyper.engine = hyperbuu;

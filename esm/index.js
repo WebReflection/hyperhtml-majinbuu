@@ -1,11 +1,10 @@
-'use strict';
 /*! (c) Andrea Giammarchi (ISC) */
 
-const majinbuu = (m => m.default)(require('majinbuu'));
+import majinbuu from 'https://unpkg.com/majinbuu@latest/esm/main.js';
 
 const {slice, splice} = [];
 
-Object.defineProperty(exports, '__esModule', {value: true}).default = {
+export default {
   MAX_LIST_SIZE: 1000,  // max amount of diff to consider before giving up
   update(
     utils,              // common utilities to deal with hyperHTML nodes
@@ -53,9 +52,9 @@ Object.defineProperty(exports, '__esModule', {value: true}).default = {
             liveNodes,
             liveStart
           ),
-          slice.call(liveNodes, liveStart, liveEnd)
+          slice.call(liveNodes, liveStart, liveEnd + 1)
         ),
-        slice.call(virtualNodes, virtualStart, virtualEnd),
+        slice.call(virtualNodes, virtualStart, virtualEnd + 1),
         // useless to re-calc the max size in majinbuu
         Infinity
       );

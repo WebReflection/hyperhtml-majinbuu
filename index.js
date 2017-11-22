@@ -16,7 +16,7 @@ hyperHTML.engine = function (cache, modules) {
   };
   return require.I(require(0));
 }([], [function (global, require, module, exports) {
-  // main.js
+  // index.js
   'use strict';
   /*! (c) Andrea Giammarchi (ISC) */
 
@@ -48,7 +48,7 @@ hyperHTML.engine = function (cache, modules) {
         utils.engine.update(utils, parentNode, commentNode, liveNodes, liveStart, liveEnd, liveLength, virtualNodes, virtualStart, virtualEnd, virtualLength);
       } else {
         // compute changes via Levenshtein distance matrix
-        majinbuu(majinbuu.aura(new Splicer(utils, parentNode, commentNode, liveNodes, liveStart), slice.call(liveNodes, liveStart, liveEnd)), slice.call(virtualNodes, virtualStart, virtualEnd),
+        majinbuu(majinbuu.aura(new Splicer(utils, parentNode, commentNode, liveNodes, liveStart), slice.call(liveNodes, liveStart, liveEnd + 1)), slice.call(virtualNodes, virtualStart, virtualEnd + 1),
         // useless to re-calc the max size in majinbuu
         Infinity);
       }
@@ -104,10 +104,11 @@ hyperHTML.engine = function (cache, modules) {
 
     var fromLength = from.length;
     var toLength = to.length;
-    var TOO_MANY = (MAX_SIZE || Infinity) < Math.sqrt((fromLength || 1) * (toLength || 1));
+    var SIZE = MAX_SIZE || Infinity;
+    var TOO_MANY = SIZE !== Infinity && SIZE < Math.sqrt((fromLength || 1) * (toLength || 1));
 
-    if (fromLength < 1 || TOO_MANY) {
-      if (toLength || TOO_MANY) {
+    if (TOO_MANY || fromLength < 1) {
+      if (TOO_MANY || toLength) {
         from.splice.apply(from, [0, fromLength].concat(to));
       }
       return;

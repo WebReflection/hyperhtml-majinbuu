@@ -1,5 +1,5 @@
 const tressa = require('tressa');
-const hyperboo = require('../cjs/main.js').default;
+const hyperboo = require('../cjs/index.js').default;
 
 tressa.title('hyperHTML.engine = majinbuu');
 
