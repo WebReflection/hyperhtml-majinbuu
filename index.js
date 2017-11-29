@@ -22,16 +22,9 @@ hyperHTML.engine = function (cache, modules) {
 
   var majinbuu = require.I(require(1));
 
-  var _ref = [],
-      slice = _ref.slice,
-      splice = _ref.splice;
-
-
   require.E(exports).default = {
     MAX_LIST_SIZE: 1000, // max amount of diff to consider before giving up
     update: function update(utils, // common utilities to deal with hyperHTML nodes
-    parentNode, // where DOM changes happen
-    commentNode, // the placeholder/marker for the list of live nodes
     liveNodes, // the current list of live nodes as Array
     liveStart, // where nodes start being different (as index)
     liveEnd, // where nodes end being different (as index)
@@ -45,49 +38,15 @@ hyperHTML.engine = function (cache, modules) {
       if (this.MAX_LIST_SIZE < Math.sqrt((liveEnd - liveStart || 1) * (virtualEnd - virtualStart || 1))) {
         // fallback to the default engine which is
         // very fast but not nearly as smart
-        utils.engine.update(utils, parentNode, commentNode, liveNodes, liveStart, liveEnd, liveLength, virtualNodes, virtualStart, virtualEnd, virtualLength);
+        utils.engine.update(utils, liveNodes, liveStart, liveEnd, liveLength, virtualNodes, virtualStart, virtualEnd, virtualLength);
       } else {
         // compute changes via Levenshtein distance matrix
-        majinbuu(majinbuu.aura(new Splicer(utils, parentNode, commentNode, liveNodes, liveStart), slice.call(liveNodes, liveStart, liveEnd + 1)), slice.call(virtualNodes, virtualStart, virtualEnd + 1),
-        // useless to re-calc the max size in majinbuu
-        Infinity);
+        majinbuu(utils.splicer, virtualNodes, liveStart, liveEnd, liveLength, virtualStart, virtualEnd, virtualLength, Infinity);
       }
-    }
-  };
-
-  function Splicer(utils, parentNode, node, childNodes, index) {
-    this.utils = utils;
-    this.parentNode = parentNode;
-    this.node = node;
-    this.childNodes = childNodes;
-    this.index = index;
-  }
-
-  Splicer.prototype.splice = function (start, end) {
-    var getNode = this.utils.getNode;
-    var changes = [this.index + start, end || 0];
-    var length = arguments.length;
-    for (var i = 2; i < length; i++) {
-      changes.push(arguments[i]);
-    }
-    var pn = this.parentNode;
-    var cn = this.childNodes;
-    var index = changes[0] + changes[1];
-    var target = index < cn.length ? getNode(cn[index]) : this.node;
-    var result = splice.apply(cn, changes);
-    var reLength = result.length;
-    for (var _i = 0; _i < reLength; _i++) {
-      var tmp = result[_i];
-      if (cn.indexOf(tmp) < 0) {
-        pn.removeChild(getNode(tmp));
-      }
-    }
-    if (2 < length) {
-      this.utils.insert(pn, slice.call(changes, 2), target);
     }
   };
 }, function (global, require, module, exports) {
-  // ../node_modules/majinbuu/cjs/main.js
+  // ../node_modules/majinbuu/cjs/index.js
   'use strict';
   /*! Copyright (c) 2017, Andrea Giammarchi, @WebReflection */
 
@@ -100,12 +59,31 @@ hyperHTML.engine = function (cache, modules) {
   // typed Array
   var TypedArray = typeof Int32Array === 'function' ? Int32Array : Array;
 
-  var majinbuu = function majinbuu(from, to, MAX_SIZE) {
+  // shortcuts
+  var min = Math.min,
+      sqrt = Math.sqrt;
 
-    var fromLength = from.length;
-    var toLength = to.length;
-    var SIZE = MAX_SIZE || Infinity;
-    var TOO_MANY = SIZE !== Infinity && SIZE < Math.sqrt((fromLength || 1) * (toLength || 1));
+
+  var majinbuu = function majinbuu(from, to, fromStart, fromEnd, fromLength, toStart, toEnd, toLength, SIZE) {
+
+    if (from === to) {
+      //# same arrays. Do nothing
+      return;
+    }
+
+    if (arguments.length < 4) {
+      SIZE = fromStart || Infinity;
+      fromLength = from.length;
+      fromStart = 0;
+      fromEnd = fromLength;
+      toLength = to.length;
+      toStart = 0;
+      toEnd = toLength;
+    } else {
+      SIZE = SIZE || Infinity;
+    }
+
+    var TOO_MANY = SIZE !== Infinity && SIZE < sqrt((fromEnd - fromStart || 1) * (toEnd - toStart || 1));
 
     if (TOO_MANY || fromLength < 1) {
       if (TOO_MANY || toLength) {
@@ -117,7 +95,25 @@ hyperHTML.engine = function (cache, modules) {
       from.splice(0);
       return;
     }
-    performOperations(from, getOperations(from, to, levenstein(from, to)));
+    var minLength = min(fromLength, toLength);
+    var beginIndex = fromStart;
+    while (beginIndex < minLength && from[beginIndex] === to[beginIndex]) {
+      beginIndex += 1;
+    }
+    if (beginIndex == fromLength && fromLength == toLength) {
+      // content of { from } and { to } are equal. Do nothing
+      return;
+    } else {
+      // relative from both ends { from } and { to }. { -1 } is last element,
+      // { -2 } is { to[to.length - 2] } and { from[fromLength - 2] } etc
+      var endRelIndex = 0;
+      var fromLengthMinus1 = fromEnd - 1;
+      var toLengthMinus1 = toEnd - 1;
+      while (beginIndex < minLength + endRelIndex && from[fromLengthMinus1 + endRelIndex] === to[toLengthMinus1 + endRelIndex]) {
+        endRelIndex--;
+      }
+      performOperations(from, getOperations(from, to, levenstein(from, to, beginIndex, endRelIndex), beginIndex, endRelIndex));
+    }
   };
 
   // given an object that would like to intercept
@@ -143,9 +139,9 @@ hyperHTML.engine = function (cache, modules) {
   // http://webreflection.blogspot.co.uk/2009/02/levenshtein-algorithm-revisited-25.html
   // then rewritten in C for Emscripten (see levenstein.c)
   // then "screw you ASM" due no much gain but very bloated code
-  var levenstein = function levenstein(from, to) {
-    var fromLength = from.length + 1;
-    var toLength = to.length + 1;
+  var levenstein = function levenstein(from, to, beginIndex, endRelIndex) {
+    var fromLength = from.length + 1 - beginIndex + endRelIndex;
+    var toLength = to.length + 1 - beginIndex + endRelIndex;
     var size = fromLength * toLength;
     var grid = new TypedArray(size);
     var x = 0;
@@ -168,7 +164,7 @@ hyperHTML.engine = function (cache, modules) {
       while (++x < toLength) {
         del = grid[prow + x] + 1;
         ins = grid[crow + X] + 1;
-        sub = grid[prow + X] + (from[Y] == to[X] ? 0 : 1);
+        sub = grid[prow + X] + (from[Y + beginIndex] == to[X + beginIndex] ? 0 : 1);
         grid[crow + x] = del < ins ? del < sub ? del : sub : ins < sub ? ins : sub;
         ++X;
       };
@@ -183,10 +179,10 @@ hyperHTML.engine = function (cache, modules) {
   };
 
   // walk the Levenshtein grid bottom -> up
-  var getOperations = function getOperations(Y, X, grid) {
+  var getOperations = function getOperations(Y, X, grid, beginIndex, endRelIndex) {
     var list = [];
-    var YL = Y.length + 1;
-    var XL = X.length + 1;
+    var YL = Y.length + 1 - beginIndex + endRelIndex;
+    var XL = X.length + 1 - beginIndex + endRelIndex;
     var y = YL - 1;
     var x = XL - 1;
     var cell = void 0,
@@ -206,21 +202,21 @@ hyperHTML.engine = function (cache, modules) {
         x--;
         y--;
         if (diagonal < cell) {
-          addOperation(list, SUBSTITUTE, x, y, 1, [X[x]]);
+          addOperation(list, SUBSTITUTE, x + beginIndex, y + beginIndex, 1, [X[x + beginIndex]]);
         }
       } else if (left <= top && left <= cell) {
         x--;
-        addOperation(list, INSERT, x, y, 0, [X[x]]);
+        addOperation(list, INSERT, x + beginIndex, y + beginIndex, 0, [X[x + beginIndex]]);
       } else {
         y--;
-        addOperation(list, DELETE, x, y, 1, []);
+        addOperation(list, DELETE, x + beginIndex, y + beginIndex, 1, []);
       }
     }
     while (x--) {
-      addOperation(list, INSERT, x, y, 0, [X[x]]);
+      addOperation(list, INSERT, x + beginIndex, y + beginIndex, 0, [X[x + beginIndex]]);
     }
     while (y--) {
-      addOperation(list, DELETE, x, y, 1, []);
+      addOperation(list, DELETE, x + beginIndex, y + beginIndex, 1, []);
     }
     return list;
   };
@@ -233,22 +229,20 @@ hyperHTML.engine = function (cache, modules) {
     var curr = void 0,
         prev = void 0,
         op = void 0;
-    if (length) {
-      op = prev = operations[0];
-      while (i < length) {
-        curr = operations[i++];
-        if (prev.type === curr.type && curr.x - prev.x <= 1 && curr.y - prev.y <= 1) {
-          op.count += curr.count;
-          op.items = op.items.concat(curr.items);
-        } else {
-          target.splice.apply(target, [op.y + diff, op.count].concat(op.items));
-          diff += op.type === INSERT ? op.items.length : op.type === DELETE ? -op.count : 0;
-          op = curr;
-        }
-        prev = curr;
+    op = prev = operations[0];
+    while (i < length) {
+      curr = operations[i++];
+      if (prev.type === curr.type && curr.x - prev.x <= 1 && curr.y - prev.y <= 1) {
+        op.count += curr.count;
+        op.items = op.items.concat(curr.items);
+      } else {
+        target.splice.apply(target, [op.y + diff, op.count].concat(op.items));
+        diff += op.type === INSERT ? op.items.length : op.type === DELETE ? -op.count : 0;
+        op = curr;
       }
-      target.splice.apply(target, [op.y + diff, op.count].concat(op.items));
+      prev = curr;
     }
+    target.splice.apply(target, [op.y + diff, op.count].concat(op.items));
   };
 
   majinbuu.aura = aura;
