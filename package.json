@@ -1,6 +1,6 @@
 {
   "name": "hyperhtml-majinbuu",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "The hyperHTML majinbuu based engine",
   "main": "cjs/index.js",
   "module": "esm/index.js",
