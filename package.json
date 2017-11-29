@@ -53,7 +53,7 @@
     "uglify-js": "^2.8.29"
   },
   "dependencies": {
-    "majinbuu": "^2.0.1"
+    "majinbuu": "^2.0.2"
   },
   "greenkeeper": {
     "ignore": [
